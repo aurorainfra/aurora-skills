@@ -28,13 +28,23 @@ It does **not** serve `/v1/messages` (Anthropic Messages API) — that returns 4
 
 ## Auth
 
-Single API key sent as a bearer token:
+One token, but **the two APIs require opposite headers**. Verified live 2026-08-31.
+
+| API | Header that works | Header that 401s |
+|---|---|---|
+| Inference (`ai.aur.lu`) | `Authorization: Bearer` | `X-Api-Key` |
+| Portal (`api-portal.aur.lu`) | `X-Api-Key` | `Authorization: Bearer` |
 
 ```
+# inference
 Authorization: Bearer $AURORA_API_KEY
+# portal
+X-Api-Key: $AURORA_API_KEY
 ```
 
-- `X-Api-Key` is documented but **401s in both environments**. Do not use it.
+This is the single easiest way to get a spurious 401. The Portal OpenAPI spec declares
+`X-Api-Key` as its only scheme, which is correct **for the Portal API** — it is not correct for
+inference.
 - Keys are **environment-scoped** — a dev key will not authenticate against prod.
 - Key generation is a human action: prod at `portal.aur.lu`, dev at `dashboard.dev.aur.lu`.
 
