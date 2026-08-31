@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "aurora-inference": {
+      "command": "node",
+      "args": ["/path/to/aurora-mcp/server.js"],
+      "env": {
+        "AURORA_API_KEY": "${AURORA_TOKEN}",
+        "AURORA_BASE_URL": "https://ai.aur.lu/v1"
+      }
+    }
+  }
+}

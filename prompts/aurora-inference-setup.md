@@ -62,11 +62,13 @@ If directed to a Stripe-hosted payment page, complete payment entry there direct
 1. Check the user's free credit balance via Stripe.
 2. If the user provides a coupon code, apply it via Stripe.
 3. If balance is insufficient, create a Stripe Checkout/Customer Portal session and present the hosted URL to the user; poll/verify completion before proceeding.
-4. Run `scripts/setup.sh` and interpret its exit code:
+4. Run `scripts/setup.sh <harness>` and interpret its exit code. For a specific harness, use the
+   matching file in `prompts/harness/` (claude-code, opencode, claude-desktop) instead of this one:
    - 0: proceed — key verified live.
    - 1: halt — tell the user .env.example is missing.
    - 2: halt — relay the script's message asking the user to set AURORA_API_KEY / AURORA_API_ENDPOINT, then re-run the script once they confirm.
    - 3: halt — tell the user the endpoint/key combination failed; do not retry with a different auth method.
+   - 4: halt — the target harness's prerequisite is missing (CLI not on PATH, or config file absent).
 5. Fetch and return the list of available models.
 </agent_actions>
 </instructions>
