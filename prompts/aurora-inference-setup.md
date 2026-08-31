@@ -11,6 +11,21 @@ Refer to this repository's README.md for:
 Do not restate or duplicate these details here — treat README.md as the source of truth and re-read it if unsure.
 </context>
 
+<objective>
+1. Onboard the user and agent with a usable endpoint and an injectable AURORA_API_KEY, then run a sample call to that endpoint to confirm inference is live.
+2. Return to the agent and user the list of available models.
+3. Return billing/credit and payment method expectations, and the user actions required to satisfy them.
+</objective>
+
+<options>
+User-supplied, fill in per use case:
+- model: <e.g. which inference model to configure>
+- region: <deployment region, if applicable>
+- scale: <e.g. instance count/size>
+
+If an option is missing and required to proceed, ask the user rather than assuming a default.
+</options>
+
 <assumptions>
 The consuming agent has, at minimum:
 - File read/write access in the user's project directory
@@ -29,23 +44,25 @@ If the agent lacks one of these, halt and tell the user what's missing rather th
 
 <instructions>
 <user_actions>
-1. Generate an AURORA_API_KEY from the Aurora dashboard.
-2. Copy .env.example to .env and set AURORA_API_KEY to the generated value.
-3. Confirm .env is gitignored (README documents this; verify locally).
+See README.md "Auth" section for credential setup steps (generate key, configure .env, confirm gitignored). Confirm these are complete before the agent proceeds.
 </user_actions>
 
 <agent_actions>
-1. Confirm the user has completed the steps above before proceeding — do not assume.
+1. Confirm the user has completed the setup steps in README.md before proceeding — do not assume.
 2. Read AURORA_API_KEY from the environment (e.g. process.env.AURORA_API_KEY) when making authenticated requests.
 3. Send it as a bearer token: `Authorization: Bearer $AURORA_API_KEY`.
-4. Scaffold or configure whatever inference setup the user has requested, using this auth pattern consistently.
-5. If a request fails with an auth error, do not retry with a different auth method — halt and ask the user to check their key.
+4. Run a sample call to the inference endpoint to confirm it's live.
+5. Fetch and return the list of available models.
+6. Fetch and return billing/credit and payment method expectations, and any user actions required.
+7. If a request fails with an auth error, do not retry with a different auth method — halt and ask the user to check their key.
 </agent_actions>
 </instructions>
 
 <success_criteria>
 Setup is complete when:
 - An authenticated request to the Aurora inference endpoint returns a successful (2xx) response.
+- Available models have been returned to the user.
+- Billing/payment expectations and required user actions have been returned to the user.
 - No credential value appears anywhere in agent-generated files, logs, or output.
 - The user has been told explicitly that setup succeeded (or, on failure, exactly what failed and why).
 </success_criteria>
