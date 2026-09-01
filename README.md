@@ -67,6 +67,24 @@ Exit codes are a contract that the prompt files branch on:
 Agents consuming these prompts should run the script and branch on the exit code rather than
 reimplementing its steps.
 
+## Getting a key without leaking it
+
+Account creation, login (Auth0) and first-key creation are **human-only** — no endpoints exist.
+`prompts/aurora-account-setup.md` guides a user through them interactively.
+
+The key is captured by a script the **user runs themselves, in their own terminal**:
+
+```bash
+scripts/paste-key.sh          # hides input, writes .env at 600, verifies, never prints the key
+```
+
+**Do not use Claude Code's `!` prefix for this.** `!` runs the command in the session and its
+**output is added to the conversation**, so it feeds the model rather than bypassing it. The script
+refuses to run without a TTY for the same reason.
+
+An agent verifies the key by running `scripts/setup.sh api` and reading the exit code — it never
+reads `.env`.
+
 ## Harness use cases
 
 Claude Desktop is deliberately **not** supported: it exposes no model-backend override, so it
@@ -74,6 +92,7 @@ cannot be pointed at Aurora. See the "Known limitation" note in `CLAUDE.md`.
 
 | Use case | Path to Aurora | Prompt |
 |---|---|---|
+| **Account setup** | Human-only signup + key; agent verifies and hands off | `prompts/aurora-account-setup.md` |
 | **Claude Code** | Requires a translating proxy — Claude Code speaks only the Anthropic Messages API | `prompts/harness/claude-code.md` |
 | **OpenCode** | Direct. OpenCode speaks OpenAI-compatible natively | `prompts/harness/opencode.md` |
 

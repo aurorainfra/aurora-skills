@@ -134,6 +134,43 @@ else
   ok "Claude Desktop stays dropped (no invented backend config)"
 fi
 
+# ── 4b. Skill 1 — credential handling ────────────────────────────────────────
+sec "4b. Skill 1: account setup + credential safety"
+
+P=prompts/aurora-account-setup.md
+[ -f "$P" ] && ok "aurora-account-setup.md exists" || bad "aurora-account-setup.md missing"
+
+MISSING=""
+for tag in role context objective constraints instructions success_criteria; do
+  grep -q "<$tag>" "$P" 2>/dev/null || MISSING="$MISSING $tag"
+done
+[ -z "$MISSING" ] && ok "aurora-account-setup.md has all required sections" \
+                  || bad "aurora-account-setup.md missing:$MISSING"
+
+# The prompt must warn that `!` does NOT bypass the model.
+grep -q 'output is added to the conversation' "$P" 2>/dev/null \
+  && ok "warns that Claude Code's \`!\` does not bypass the model" \
+  || bad "does not warn about \`!\` — a user may leak a key believing it is a passthrough"
+
+# The prompt must forbid asking for the key in chat.
+grep -qi 'never ask for, echo, log, or read the key' "$P" 2>/dev/null \
+  && ok "forbids asking for / echoing the key" || bad "does not forbid handling the key"
+
+# paste-key.sh must never print the captured value.
+K=scripts/paste-key.sh
+[ -f "$K" ] && ok "paste-key.sh exists" || bad "paste-key.sh missing"
+if grep -nE '(echo|printf)[^#]*\$AURORA_KEY_INPUT' "$K" 2>/dev/null | grep -qv "printf 'AURORA_API_KEY=%s"; then
+  bad "paste-key.sh may print the key value"
+else
+  ok "paste-key.sh never prints the key value"
+fi
+grep -q 'read -rs' "$K" 2>/dev/null && ok "paste-key.sh reads input with echo disabled" \
+                                   || bad "paste-key.sh does not hide input"
+grep -q 'chmod 600' "$K" 2>/dev/null && ok "paste-key.sh chmods .env to 600" \
+                                     || bad "paste-key.sh does not restrict .env perms"
+grep -q '! -t 0' "$K" 2>/dev/null && ok "paste-key.sh refuses to run without a TTY" \
+                                  || bad "paste-key.sh does not require a TTY"
+
 # ── 5. Live checks (opt-in) ──────────────────────────────────────────────────
 sec "5. Live checks against Aurora (opt-in)"
 

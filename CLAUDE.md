@@ -14,7 +14,9 @@ Resolving that is issue #4.
 
 - `README.md` — human-facing setup: repo structure, auth pattern, how to run scripts/setup.sh
 - `prompts/meta/build-agent-setup-suite.md` — the meta-prompt: the instruction file used to generate the harness prompt set. Re-run it when the suite needs regenerating.
+- `prompts/aurora-account-setup.md` — Skill 1: interactive account/key setup. Guides the human-only steps (Auth0 login, key creation) and captures the key without it entering agent context
 - `prompts/harness/{claude-code,opencode}.md` — one agent instruction file per supported harness
+- `scripts/paste-key.sh` — user-run, TTY-only, `read -rs` capture straight to `.env` (mode 600); never prints the value
 - `prompts/aurora-inference-setup.md` — the general setup agent file (XML-tagged: role, context, objective, options, assumptions, constraints, instructions, success_criteria, formatting)
 - `tests/run-fixtures.sh` — fixture suite; green with no key and no network, live checks opt-in behind `AURORA_LIVE=1`
 - `scripts/setup.sh` — deterministic bash script, now harness-aware (`setup.sh [api|claude-code|opencode|claude-desktop]`): creates .env from .env.example, verifies credentials, checks .gitignore, makes a live call to `/v1/models`, then checks harness prerequisites. Exit codes 0/1/2/3 keep their original meanings; **4 was added** for "harness prerequisite missing". Do not change 0-3 without updating every file in prompts/.
@@ -67,3 +69,14 @@ and the roadmap's four stories cover Claude Code, OpenCode, Hermes and account s
 
 **Do not re-add it by inventing a config key — none exists, and a fake one fails silently**, leaving
 the user believing their traffic moved to Aurora when every token still goes to Anthropic.
+
+## Credential handling: `!` is not a bypass
+
+A user may assume Claude Code's `!` prefix keeps a pasted secret out of the model. **It does not** —
+`!` runs the command in the session and its *output is added to the conversation*. Anything printed,
+and the command line itself, become model-visible.
+
+The safe pattern, enforced by `scripts/paste-key.sh` and asserted by the fixture suite: the user runs
+the script in their **own terminal**, it reads with `read -rs` (echo off), writes straight to `.env`
+at mode 600, and never prints the value. The script refuses to run without a TTY so it cannot be
+driven by an agent. Agents verify via `scripts/setup.sh` exit codes, never by reading `.env`.
