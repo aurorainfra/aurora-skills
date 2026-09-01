@@ -171,6 +171,36 @@ grep -q 'chmod 600' "$K" 2>/dev/null && ok "paste-key.sh chmods .env to 600" \
 grep -q '! -t 0' "$K" 2>/dev/null && ok "paste-key.sh refuses to run without a TTY" \
                                   || bad "paste-key.sh does not require a TTY"
 
+# ── 4c. Bootstrap entry point ────────────────────────────────────────────────
+sec "4c. Bootstrap: README is the front door and the one-liner resolves"
+
+RAW=https://raw.githubusercontent.com/aurorainfra/aurora-skills/main
+
+grep -q "Read $RAW/README.md" README.md 2>/dev/null \
+  && ok "README tells the user how to point an agent at it" \
+  || bad "README has no agent entry instruction"
+
+grep -q "bash <(curl -fsSL $RAW/scripts/paste-key.sh)" README.md 2>/dev/null \
+  && ok "README carries the process-substitution one-liner" \
+  || bad "README missing the bootstrap one-liner"
+
+# curl|bash would break the hidden read — it must not be recommended anywhere.
+if grep -rnE 'curl[^|]*\|[[:space:]]*(sudo[[:space:]]+)?bash' README.md prompts/ 2>/dev/null | grep -qv 'Do not offer\|Why not'; then
+  bad "a 'curl | bash' form is recommended somewhere (breaks interactive read)"
+else
+  ok "no 'curl | bash' recommended (would break the hidden read)"
+fi
+
+grep -q 'aurora-account-setup.md' README.md 2>/dev/null \
+  && ok "README links the interactive setup skill" || bad "README does not link Skill 1"
+for h in claude-code opencode; do
+  grep -q "prompts/harness/$h.md" README.md 2>/dev/null \
+    && ok "README links harness prompt: $h" || bad "README missing harness link: $h"
+done
+grep -qi 'output is added to the conversation' README.md 2>/dev/null \
+  && ok "README warns that \`!\` does not bypass the model" \
+  || bad "README omits the \`!\` warning"
+
 # ── 5. Live checks (opt-in) ──────────────────────────────────────────────────
 sec "5. Live checks against Aurora (opt-in)"
 

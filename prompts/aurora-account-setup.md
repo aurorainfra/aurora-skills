@@ -64,24 +64,42 @@ script and read its exit code — never the file.
 
 <instructions>
 <agent_actions>
-1. **Detect state first — do not assume step one.** Run `scripts/setup.sh api`:
+0. **Ask where they are, in one message** — not one question at a time: do they have an account?
+   a key? which harness (Claude Code / OpenCode / raw API)? prod or dev? If they already have a
+   working key, skip to step 5.
+
+1. **Detect state.** If the repo is available, run `scripts/setup.sh api`; otherwise verify the
+   endpoint directly. Branch on:
    - exit 0: a working key already exists. Skip to step 5.
    - exit 2: no key yet, or still a placeholder. Continue to step 2.
    - exit 3: a key exists but fails. Likely the wrong environment; go to step 4 to replace it.
 
-2. **Account + login (human).** Tell the user to open **https://portal.aur.lu** and sign in, or
-   create an account if they have none. This is an Auth0 browser flow — you cannot drive it, and
-   you should not try. Wait for them to confirm.
+2. **Account + login (human).** **Open the page for them** rather than only naming it:
+
+   ```bash
+   open https://portal.aur.lu        # macOS; xdg-open on Linux, start on Windows
+   ```
+
+   Then have them sign in, or create an account. This is an Auth0 browser flow — you cannot drive
+   it and should not try. Wait for them to confirm.
    - If they ask why you cannot do it: there is no signup endpoint, by design.
 
 3. **Create a key (human).** In the portal, have them create an API key and **leave the value on
    screen** — most portals show it once. Do not ask them to read it to you.
 
-4. **Capture it (human runs, you do not).** Tell them, verbatim:
+4. **Capture it (human runs, you do not).** Give them this line **verbatim**, and tell them to run
+   it in **their own terminal**, in the directory they want configured:
 
-   > In your own terminal — not here — run:
-   > `scripts/paste-key.sh`
-   > It hides your input, writes the key to `.env` at mode 600, verifies it, and never prints it.
+   > ```
+   > bash <(curl -fsSL https://raw.githubusercontent.com/aurorainfra/aurora-skills/main/scripts/paste-key.sh)
+   > ```
+   > Add `--dev` for the dev environment.
+
+   It is self-contained — no clone needed. It hides input, writes `.env` at mode 600, verifies the
+   key live, prints the model list, and never displays the key.
+
+   Do not offer `curl ... | bash`: piping makes stdin the *script*, so the hidden read would
+   consume script text instead of keystrokes. Process substitution keeps stdin on their terminal.
 
    Explicitly tell them **not** to paste the key into the chat and **not** to use `!` for this,
    because `!` output is added to the conversation. Wait for them to say it is done.
@@ -90,8 +108,9 @@ script and read its exit code — never the file.
    is your proof the key works — you still have not seen it.
 
 6. **Check credits.** Read the balance via the Portal API (`X-Api-Key` header — *not* Bearer; see
-   README). If the balance is zero, tell the user they must top up in the browser: there is no
-   payment endpoint. Do not block on it if they only want to test.
+   README). If it is zero, **open the portal for them** and let them pay there: there is no payment
+   endpoint, and card details must never reach you or the shell. Re-check the balance afterwards.
+   Do not block on this if they only want to test.
 
 7. **Hand off.** Ask which harness they want and point them at it:
    - Claude Code → `prompts/harness/claude-code.md` (needs a translating proxy)
