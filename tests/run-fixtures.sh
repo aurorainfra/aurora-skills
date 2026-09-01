@@ -201,6 +201,21 @@ grep -qi 'output is added to the conversation' README.md 2>/dev/null \
   && ok "README warns that \`!\` does not bypass the model" \
   || bad "README omits the \`!\` warning"
 
+# ── 4d. Prompt files must survive the rendered-page path ─────────────────────
+sec "4d. XML structure: raw-fetch guidance present"
+
+for f in prompts/aurora-account-setup.md prompts/aurora-inference-setup.md \
+         prompts/harness/claude-code.md prompts/harness/opencode.md \
+         prompts/meta/build-agent-setup-suite.md; do
+  head -1 "$f" 2>/dev/null | grep -q 'read the raw file' \
+    && ok "$(basename "$f"): carries raw-fetch header" \
+    || bad "$(basename "$f"): missing raw-fetch header (rendered page strips its XML tags)"
+done
+
+grep -q 'not the rendered GitHub pages' README.md 2>/dev/null \
+  && ok "README requires raw URLs for prompt files" \
+  || bad "README does not warn that rendered pages strip XML tags"
+
 # ── 5. Live checks (opt-in) ──────────────────────────────────────────────────
 sec "5. Live checks against Aurora (opt-in)"
 

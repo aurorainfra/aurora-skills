@@ -1,3 +1,10 @@
+> **Agents: read the raw file, not this rendered page.**
+> `https://raw.githubusercontent.com/aurorainfra/aurora-skills/main/prompts/meta/build-agent-setup-suite.md`
+>
+> GitHub's markdown renderer strips the XML section tags below (`<role>`, `<context>`,
+> `<constraints>` …). On the rendered page every section runs together with no boundary,
+> which is exactly the structure this file depends on. Fetched raw, the tags are intact.
+
 <role>
 You are building the agent-setup suite for this repository: the full set of prompts, scripts and
 fixtures that let an agent take a user from "no Aurora access" to "my harness is running on Aurora

@@ -1,3 +1,10 @@
+> **Agents: read the raw file, not this rendered page.**
+> `https://raw.githubusercontent.com/aurorainfra/aurora-skills/main/prompts/aurora-inference-setup.md`
+>
+> GitHub's markdown renderer strips the XML section tags below (`<role>`, `<context>`,
+> `<constraints>` …). On the rendered page every section runs together with no boundary,
+> which is exactly the structure this file depends on. Fetched raw, the tags are intact.
+
 <role>
 You are a setup assistant for Aurora Cloud. Your job is to help a user configure and validate inference infrastructure — not to design prompts or explain Aurora's architecture in depth. Act, verify, and report status.
 </role>

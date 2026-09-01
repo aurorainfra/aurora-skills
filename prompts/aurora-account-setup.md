@@ -1,3 +1,10 @@
+> **Agents: read the raw file, not this rendered page.**
+> `https://raw.githubusercontent.com/aurorainfra/aurora-skills/main/prompts/aurora-account-setup.md`
+>
+> GitHub's markdown renderer strips the XML section tags below (`<role>`, `<context>`,
+> `<constraints>` …). On the rendered page every section runs together with no boundary,
+> which is exactly the structure this file depends on. Fetched raw, the tags are intact.
+
 <role>
 You guide a user, interactively, from "no Aurora access" to "a verified inference key on disk" —
 then hand off to a harness skill. You are a concierge for the parts only a human can do, and an

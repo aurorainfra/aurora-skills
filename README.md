@@ -79,6 +79,11 @@ portal and let them pay there; then re-check the balance. Never handle card deta
 
 ### Phase 5 — Configure their harness
 
+**Fetch the `raw.githubusercontent.com` URLs below, not the rendered GitHub pages.** These prompts
+use XML section tags (`<role>`, `<context>`, `<constraints>` …) for their structure, and GitHub's
+markdown renderer strips them — on the rendered page every section runs together with no boundary.
+Raw is `text/plain`, so the tags survive.
+
 Fetch and follow the matching file:
 
 | Harness | Prompt | Note |
