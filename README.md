@@ -69,11 +69,13 @@ reimplementing its steps.
 
 ## Harness use cases
 
+Claude Desktop is deliberately **not** supported: it exposes no model-backend override, so it
+cannot be pointed at Aurora. See the "Known limitation" note in `CLAUDE.md`.
+
 | Use case | Path to Aurora | Prompt |
 |---|---|---|
 | **Claude Code** | Requires a translating proxy — Claude Code speaks only the Anthropic Messages API | `prompts/harness/claude-code.md` |
 | **OpenCode** | Direct. OpenCode speaks OpenAI-compatible natively | `prompts/harness/opencode.md` |
-| **Claude Desktop** | **Model backend cannot be redirected.** Aurora attaches as an MCP tool only | `prompts/harness/claude-desktop.md` |
 
 ## Tests
 

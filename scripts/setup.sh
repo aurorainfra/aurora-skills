@@ -2,7 +2,7 @@
 # Deterministic setup + verification for Aurora inference.
 #
 # Usage: scripts/setup.sh [harness]
-#   harness: api (default) | claude-code | opencode | claude-desktop
+#   harness: api (default) | claude-code | opencode
 #
 # Exit codes (CONTRACT — prompts/ branch on these; do not redefine 0-3):
 #   0 = success, credentials verified live against Aurora
@@ -17,8 +17,8 @@ ENV_FILE=".env"
 ENV_EXAMPLE=".env.example"
 
 case "$HARNESS" in
-  api|claude-code|opencode|claude-desktop) ;;
-  *) echo "Unknown harness: $HARNESS (expected: api|claude-code|opencode|claude-desktop)"; exit 1 ;;
+  api|claude-code|opencode) ;;
+  *) echo "Unknown harness: $HARNESS (expected: api|claude-code|opencode)"; exit 1 ;;
 esac
 
 # ── 1. Credentials ────────────────────────────────────────────────────────────
@@ -123,17 +123,6 @@ case "$HARNESS" in
     echo "OK: claude found. Aurora /v1/messages returned $MSG_STATUS (non-2xx expected)."
     echo "    Claude Code speaks ONLY /v1/messages, so a translating proxy is required."
     echo "    See prompts/harness/claude-code.md."
-    ;;
-  claude-desktop)
-    CFG="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
-    if [ ! -f "$CFG" ]; then
-      echo "Harness prerequisite missing: Claude Desktop config not found at:"
-      echo "  $CFG"
-      exit 4
-    fi
-    echo "OK: Claude Desktop config found."
-    echo "    NOTE: Claude Desktop exposes no model-backend override. Aurora can be attached"
-    echo "    as an MCP tool server, not as the model. See prompts/harness/claude-desktop.md."
     ;;
 esac
 

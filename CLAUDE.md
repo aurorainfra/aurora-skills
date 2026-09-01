@@ -14,7 +14,7 @@ Resolving that is issue #4.
 
 - `README.md` — human-facing setup: repo structure, auth pattern, how to run scripts/setup.sh
 - `prompts/meta/build-agent-setup-suite.md` — the meta-prompt: the instruction file used to generate the harness prompt set. Re-run it when the suite needs regenerating.
-- `prompts/harness/{claude-code,opencode,claude-desktop}.md` — one agent instruction file per harness use case
+- `prompts/harness/{claude-code,opencode}.md` — one agent instruction file per supported harness
 - `prompts/aurora-inference-setup.md` — the general setup agent file (XML-tagged: role, context, objective, options, assumptions, constraints, instructions, success_criteria, formatting)
 - `tests/run-fixtures.sh` — fixture suite; green with no key and no network, live checks opt-in behind `AURORA_LIVE=1`
 - `scripts/setup.sh` — deterministic bash script, now harness-aware (`setup.sh [api|claude-code|opencode|claude-desktop]`): creates .env from .env.example, verifies credentials, checks .gitignore, makes a live call to `/v1/models`, then checks harness prerequisites. Exit codes 0/1/2/3 keep their original meanings; **4 was added** for "harness prerequisite missing". Do not change 0-3 without updating every file in prompts/.
@@ -58,10 +58,12 @@ Re-verified live, not inherited from chat. The catalog moves — re-check before
 - Raw OpenAPI spec at `https://docs.aur.lu/portal-api-spec.json` is plain-fetchable by an agent —
   the one Aurora docs artifact that works without JavaScript.
 
-## Known limitation: Claude Desktop
+## Dropped: Claude Desktop (decided 2026-08-31)
 
 Claude Desktop exposes **no** model-backend override — no `ANTHROPIC_BASE_URL` equivalent, no
 api-key or model field in `claude_desktop_config.json`. Its only extension point is `mcpServers`.
-"Run Claude Desktop on Aurora" is therefore not achievable as literally stated. The suite delivers
-Aurora-as-an-MCP-tool instead and says so explicitly. **Do not "fix" this by adding a config key —
-none exists, and a fake one fails silently.**
+"Run Claude Desktop on Aurora" is therefore not achievable as literally stated. **Claude Desktop was therefore dropped from the suite** — the prompt and its fixture were removed,
+and the roadmap's four stories cover Claude Code, OpenCode, Hermes and account setup instead.
+
+**Do not re-add it by inventing a config key — none exists, and a fake one fails silently**, leaving
+the user believing their traffic moved to Aurora when every token still goes to Anthropic.

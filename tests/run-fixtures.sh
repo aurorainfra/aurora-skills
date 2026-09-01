@@ -56,7 +56,7 @@ if bash -n scripts/setup.sh 2>/dev/null; then ok "setup.sh parses"; else bad "se
 OUT=$(bash scripts/setup.sh not-a-harness 2>&1); RC=$?
 [ "$RC" -eq 1 ] && ok "unknown harness exits 1" || bad "unknown harness exited $RC (want 1)"
 
-for h in api claude-code opencode claude-desktop; do
+for h in api claude-code opencode; do
   grep -q -- "$h" scripts/setup.sh && ok "harness '$h' handled" || bad "harness '$h' missing"
 done
 
@@ -114,38 +114,10 @@ for name,cond in checks: print(("PASS::" if cond else "FAIL::")+name)
 PY
 consume < "$PYOUT"; rm -f "$PYOUT"
 
-# ── 4. Use case 3 — Claude Desktop (MCP only; no backend override exists) ─────
-sec "4. Use case 3: Claude Desktop -> Aurora (MCP tool, NOT model backend)"
+# ── 4. Prompt-set consistency ────────────────────────────────────────────────
+sec "4. Prompt-set structural consistency"
 
-D=$F/claude_desktop_config.json
-python3 -c "import json; json.load(open('$D'))" 2>/dev/null \
-  && ok "claude_desktop_config.json parses" || bad "claude_desktop_config.json does not parse"
-PYOUT=$(mktemp)
-python3 - "$D" > "$PYOUT" <<'PY'
-import json,sys
-d=json.load(open(sys.argv[1])); flat=json.dumps(d)
-srv=d.get("mcpServers",{}).get("aurora-inference",{})
-invented={"baseUrl","base_url","apiBase","anthropicBaseUrl","model","apiKey"} & set(d.keys())
-checks=[
- ("registers an aurora-inference MCP server", bool(srv)),
- ("no invented top-level backend keys", not invented),
- ("key passed via env block", "AURORA_API_KEY" in srv.get("env",{})),
- ("key is a reference, not a literal", srv.get("env",{}).get("AURORA_API_KEY","").startswith("${")),
- ("no atp_ literal anywhere", "atp_" not in flat),
-]
-for name,cond in checks: print(("PASS::" if cond else "FAIL::")+name)
-PY
-consume < "$PYOUT"; rm -f "$PYOUT"
-
-# The prompt must NOT claim the model backend can be redirected.
-grep -qi 'cannot be pointed at a third-party model backend' prompts/harness/claude-desktop.md \
-  && ok "claude-desktop.md states the backend limitation" \
-  || bad "claude-desktop.md does not state the backend limitation"
-
-# ── 5. Prompt-set consistency ────────────────────────────────────────────────
-sec "5. Prompt-set structural consistency"
-
-for p in prompts/harness/claude-code.md prompts/harness/opencode.md prompts/harness/claude-desktop.md; do
+for p in prompts/harness/claude-code.md prompts/harness/opencode.md; do
   MISSING=""
   for tag in role context objective constraints instructions success_criteria; do
     grep -q "<$tag>" "$p" || MISSING="$MISSING $tag"
@@ -154,8 +126,16 @@ for p in prompts/harness/claude-code.md prompts/harness/opencode.md prompts/harn
                     || bad "$(basename "$p") missing:$MISSING"
 done
 
-# ── 6. Live checks (opt-in) ──────────────────────────────────────────────────
-sec "6. Live checks against Aurora (opt-in)"
+# Claude Desktop was dropped deliberately (no model-backend override exists).
+# Fail if it reappears, so nobody re-adds it with an invented config key.
+if [ -e prompts/harness/claude-desktop.md ] || [ -e tests/fixtures/claude_desktop_config.json ]; then
+  bad "Claude Desktop artifacts are back — it was dropped on purpose; see CLAUDE.md"
+else
+  ok "Claude Desktop stays dropped (no invented backend config)"
+fi
+
+# ── 5. Live checks (opt-in) ──────────────────────────────────────────────────
+sec "5. Live checks against Aurora (opt-in)"
 
 if [ "${AURORA_LIVE:-0}" != "1" ]; then
   skip "live catalog check (set AURORA_LIVE=1 with a real AURORA_API_KEY to run)"
