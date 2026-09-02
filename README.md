@@ -156,7 +156,14 @@ pointed at Aurora. Do not add a config key for it — none exists, and a fake on
 ```bash
 tests/run-fixtures.sh                                    # static only, no key needed
 AURORA_LIVE=1 AURORA_API_KEY=... tests/run-fixtures.sh   # adds live checks
+tests/docs-agent-readiness.sh                            # probes the live docs as an agent would
 ```
+
+`docs-agent-readiness.sh` is the repeatable acceptance test for
+[inference-roadmap#185](https://github.com/aurorainfra/inference-roadmap/issues/185): it fetches
+Aurora's docs over plain HTTP with no JavaScript and asserts an agent can actually use them —
+distinct content per page, real 404s, real `robots.txt`, a sitemap that points at the real host, and
+the raw OpenAPI spec still fetchable. Exit 0 means the docs are agent-ready. It currently exits 1.
 
 ## Conventions
 
