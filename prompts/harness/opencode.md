@@ -27,7 +27,7 @@ Config lives at `~/.config/opencode/opencode.jsonc`.
 </objective>
 
 <constraints>
-- Reference the key as `{env:AURORA_TOKEN}` in config. Never write its literal value.
+- Reference the key as `{env:AURORA_API_KEY}` in config. Never write its literal value.
 - Read the model catalog live. The catalog has changed twice; ids and context windows drift.
 - Do not copy the key into a second credential store. Keep exactly one copy on disk, mode 600.
 </constraints>
@@ -42,7 +42,7 @@ Config lives at `~/.config/opencode/opencode.jsonc`.
 2. Add a provider block to `~/.config/opencode/opencode.jsonc`:
    - `npm`: `@ai-sdk/openai-compatible`
    - `options.baseURL`: the verified `AURORA_API_ENDPOINT`
-   - `options.apiKey`: `{env:AURORA_TOKEN}`
+   - `options.apiKey`: `{env:AURORA_API_KEY}`
    - `models`: one entry per id returned by the live catalog. Do not invent entries.
    Preserve any existing providers in that file.
 3. Prove it: run `opencode run "Reply with exactly: pong"` against an Aurora model and confirm

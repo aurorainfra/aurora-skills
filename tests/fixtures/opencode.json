@@ -7,7 +7,7 @@
       "name": "Aurora Inference",
       "options": {
         "baseURL": "https://ai.aur.lu/v1",
-        "apiKey": "{env:AURORA_TOKEN}"
+        "apiKey": "{env:AURORA_API_KEY}"
       },
       "models": {
         "deepseek/deepseek-v4-flash": { "name": "Aurora DeepSeek V4 Flash" }

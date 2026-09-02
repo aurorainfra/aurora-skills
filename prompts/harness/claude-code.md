@@ -48,7 +48,7 @@ Four proxy settings are load-bearing. Each was a silent failure before it was se
 - Never claim `ANTHROPIC_BASE_URL` can point at Aurora directly. It cannot.
 - Bind the proxy to `127.0.0.1` only. Do not add a master key — it buys nothing here and has
   previously ended up committed to git as a live secret.
-- Reference the key via `os.environ/AURORA_TOKEN`. Never write its literal value.
+- Reference the key via `os.environ/AURORA_API_KEY`. Never write its literal value.
 - Read the model catalog live rather than hardcoding an id.
 </constraints>
 
