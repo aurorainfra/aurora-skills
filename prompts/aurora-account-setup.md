@@ -98,7 +98,7 @@ script and read its exit code — never the file.
    it in **their own terminal**, in the directory they want configured:
 
    > ```
-   > bash <(curl -fsSL https://raw.githubusercontent.com/aurorainfra/aurora-skills/main/scripts/paste-key.sh)
+   > curl -fsSL https://raw.githubusercontent.com/aurorainfra/aurora-skills/main/scripts/paste-key.sh -o aurora-paste-key.sh && bash aurora-paste-key.sh; rm -f aurora-paste-key.sh
    > ```
    > Add `--dev` for the dev environment.
 

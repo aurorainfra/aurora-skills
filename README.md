@@ -16,6 +16,12 @@ Point your coding agent at this file and it will set you up on Aurora inference.
 You are setting a user up on Aurora inference. Work through these phases in order. Do not skip
 phase 0 — a user who already has a working key should not be walked through signup again.
 
+### Prerequisites
+
+On the machine being configured: `curl`, `bash` (for running the scripts, not for pasting the
+command), and `python3` (`setup.sh` parses the model catalog with it). A browser is needed only for
+Phase 1, and only on *some* machine the human can reach — not necessarily this one.
+
 ### Phase 0 — Find out where they are
 
 Ask, in one message, not one at a time:
@@ -30,11 +36,20 @@ If they already have a key, skip to Phase 3.
 ### Phase 1 — Account and key (browser; you cannot do this)
 
 There is **no signup endpoint** and **no key-creation endpoint reachable without a key**. These
-steps are human-only. Open the pages for them:
+steps are human-only. Open the page for them — pick the opener that exists, do not assume `open`:
 
-```bash
-open https://portal.aur.lu        # macOS   (xdg-open on Linux, start on Windows)
+```sh
+url=https://portal.aur.lu
+if command -v open      >/dev/null 2>&1; then open "$url"          # macOS
+elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$url"     # Linux desktop
+elif command -v start    >/dev/null 2>&1; then start "$url"        # Windows
+else echo "No browser on this machine. Open $url yourself, on whatever device has one."
+fi
 ```
+
+**If there is no browser here, that is normal, not an error.** The common shape of this is an agent
+on a server and a human at a laptop. Print the URL and let them open it wherever they are — the rest
+of the flow does not care which machine the browser was on.
 
 Tell them to sign in (or create an account — it is an Auth0 flow), then create an API key and
 **leave the value on screen**. Do not ask them to read it to you. Wait for confirmation.
@@ -44,11 +59,22 @@ Tell them to sign in (or create an account — it is an Auth0 flow), then create
 Give them this line **verbatim** and tell them to run it in **their own terminal**, in the
 directory they want configured:
 
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/aurorainfra/aurora-skills/main/scripts/paste-key.sh)
+```sh
+curl -fsSL https://raw.githubusercontent.com/aurorainfra/aurora-skills/main/scripts/paste-key.sh -o aurora-paste-key.sh && bash aurora-paste-key.sh; rm -f aurora-paste-key.sh
 ```
 
-Add `--dev` for the dev environment.
+Add `--dev` after `aurora-paste-key.sh` for the dev environment.
+
+This form runs in **any** shell, which is the point — the line is pasted by a human, into whatever
+shell they happen to have.
+
+**Why not `bash <(curl -fsSL …)`?** That is process substitution: bash, zsh and ksh only. Under
+`sh`/dash it dies at parse time with ``syntax error near unexpected token `(' `` before curl or bash
+ever run — a dead end for anyone who does not already know what `<(` means. macOS defaults to zsh,
+so it looks fine there and fails on a Debian box.
+
+**Why not `curl … | bash`?** Do not offer it. The script reads the key from the terminal, and a pipe
+takes stdin away from it.
 
 It hides their input, writes `.env` at mode 600, verifies the key live, prints the model list, and
 never displays the key. It refuses to run without a TTY.
