@@ -70,6 +70,63 @@ OUT=$( cd "$TMP" && bash scripts/setup.sh api 2>&1 ); RC=$?
 [ "$RC" -eq 2 ] && ok "placeholder key exits 2" || bad "placeholder key exited $RC (want 2)"
 rm -rf "$TMP"
 
+# Unreachable endpoint must NOT share an exit code with a rejected key. A developer
+# whose network is down should not be sent back to the portal to mint a new key.
+TMP=$(mktemp -d)
+cp -R scripts .env.example .gitignore "$TMP/" 2>/dev/null
+printf 'AURORA_API_KEY=not-a-real-key\nAURORA_API_ENDPOINT=https://127.0.0.1:1/v1\n' > "$TMP/.env"
+OUT=$( cd "$TMP" && bash scripts/setup.sh api 2>&1 ); RC=$?
+[ "$RC" -eq 5 ] && ok "unreachable endpoint exits 5 (not 3)" \
+  || bad "unreachable endpoint exited $RC (want 5, and never 3)"
+printf '%s' "$OUT" | grep -q 'not an auth failure' \
+  && ok "unreachable message says the key was not tested" \
+  || bad "unreachable message does not distinguish itself from an auth failure"
+printf '%s' "$OUT" | grep -q '000000' \
+  && bad "status code was captured twice (the '|| echo 000' regression)" \
+  || ok "status captured once; the unreachable branch stays matchable"
+rm -rf "$TMP"
+
+# A missing local interpreter must be reported as such, not as an auth or catalog failure.
+TMP=$(mktemp -d); BIN="$TMP/bin"; mkdir -p "$BIN"
+for b in grep cp mktemp curl head rm cat sed; do
+  src=$(command -v "$b" 2>/dev/null) && ln -sf "$src" "$BIN/$b"
+done
+cp -R scripts .env.example .gitignore "$TMP/" 2>/dev/null
+printf 'AURORA_API_KEY=not-a-real-key\nAURORA_API_ENDPOINT=https://127.0.0.1:1/v1\n' > "$TMP/.env"
+BASH_ABS=$(command -v bash)
+OUT=$( cd "$TMP" && PATH="$BIN" "$BASH_ABS" scripts/setup.sh api 2>&1 ); RC=$?
+if [ "$RC" -eq 6 ]; then
+  ok "missing python3 exits 6 (not 3)"
+  printf '%s' "$OUT" | grep -q 'python3' \
+    && ok "missing-prerequisite message names python3" \
+    || bad "missing-prerequisite message does not name the tool"
+else
+  bad "missing python3 exited $RC (want 6, and never 3)"
+fi
+rm -rf "$TMP"
+
+# The exit-code contract must document every code the script can actually return.
+for code in 5 6; do
+  grep -qE "^#   $code = " scripts/setup.sh \
+    && ok "exit code $code is documented in the contract" \
+    || bad "exit code $code is returned but undocumented"
+done
+# Both harness prompts branch on the contract, so both must carry the new codes.
+for f in prompts/harness/opencode.md prompts/harness/claude-code.md; do
+  for code in 5 6; do
+    grep -qE "^   - $code: " "$f" \
+      && ok "$(basename "$f") handles exit $code" \
+      || bad "$(basename "$f") does not handle exit $code"
+  done
+done
+# No file may claim X-Api-Key is universally invalid — it is the Portal API's header.
+if grep -rn 'X-Api-Key does not work anywhere\|401s in \*\*both\*\* environments\. Never use it' \
+     scripts/ prompts/ README.md 2>/dev/null | grep -q .; then
+  bad "a file still claims X-Api-Key is universally invalid (it is the Portal API's header)"
+else
+  ok "X-Api-Key is described per-API, never as universally invalid"
+fi
+
 # ── 2. Use case 1 — Claude Code (proxy is mandatory) ──────────────────────────
 sec "2. Use case 1: Claude Code -> Aurora (via translating proxy)"
 
