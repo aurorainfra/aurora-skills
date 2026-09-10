@@ -271,7 +271,7 @@ done
 KEYSC=$(grep -l '<!-- requires: key -->' tests/scenarios/*.md 2>/dev/null | head -1)
 if [ -n "$KEYSC" ]; then
   set +e
-  ( unset AURORA_TRIAL_KEY; COLD_BASE="$(mktemp -d)" \
+  ( unset AURORA_API_KEY; COLD_BASE="$(mktemp -d)" \
       bash tests/cold-start-trial.sh "$(basename "$KEYSC" .md)" >/dev/null 2>&1 ); RC=$?
   set -e
   [ "$RC" -eq 3 ] && ok "refuses a key-requiring scenario when no trial key is set (exit 3)" \
@@ -287,21 +287,24 @@ if grep -nE 'aurora-litellm|find[^|]*\.env|source[[:space:]]+[^|]*\.env|^[[:spac
      tests/cold-start-trial.sh >/dev/null 2>&1; then
   bad "harness discovers credentials on the filesystem instead of taking them explicitly"
 else
-  ok "trial key comes only from \$AURORA_TRIAL_KEY, never discovered on disk"
+  ok "trial key comes only from \$AURORA_API_KEY, never discovered on disk"
 fi
 
-# The seeded key must never reach stdout. An escaped \$AURORA_TRIAL_KEY prints the
+# The seeded key must never reach stdout. An escaped \$AURORA_API_KEY prints the
 # variable's NAME and is fine; an unescaped expansion not redirected to a file is not.
 LEAKY=$(grep -nE '(echo|printf)' tests/cold-start-trial.sh \
-        | grep -F '$AURORA_TRIAL_KEY' \
-        | grep -v '\\$AURORA_TRIAL_KEY' \
+        | grep -F '$AURORA_API_KEY' \
+        | grep -v '\\$AURORA_API_KEY' \
         | grep -v '>' || true)
 if [ -n "$LEAKY" ]; then
   bad "harness may print the trial key: $LEAKY"
 else
   ok "harness never expands the trial key into output"
 fi
-grep -qE 'cat[[:space:]]+[^|]*\.env|echo[[:space:]]+[^|]*\$AURORA_API_KEY' tests/cold-start-trial.sh \
+# Reading the seeded file back would put the secret in the harness's own output.
+# (An escaped \$AURORA_API_KEY prints only the variable name and is covered by the
+# expansion check above, so it is deliberately not matched here.)
+grep -qE '(cat|less|head|tail)[[:space:]]+[^|]*\.env' tests/cold-start-trial.sh \
   && bad "harness reads back the seeded .env" \
   || ok "harness never reads back the seeded .env"
 

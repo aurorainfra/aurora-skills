@@ -177,7 +177,7 @@ Three of them begin *after* the human-only steps, so they need a real key on dis
 explicitly and from nowhere else:
 
 ```bash
-AURORA_TRIAL_KEY=... tests/cold-start-trial.sh S2-opencode-merge
+AURORA_API_KEY=... tests/cold-start-trial.sh S2-opencode-merge
 ```
 
 Without it the harness exits 3 rather than run the scenario against an empty directory and report

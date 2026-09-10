@@ -27,7 +27,7 @@
 #
 # Scenarios marked `<!-- requires: key -->` simulate a developer who has already
 # completed the human-only steps, so they need a real key on disk. It comes from
-# AURORA_TRIAL_KEY and from nowhere else. The harness never searches the
+# AURORA_API_KEY and from nowhere else. The harness never searches the
 # filesystem for one.
 #
 # Use a dedicated, revocable key minted for this purpose. Do NOT reuse a key
@@ -137,13 +137,13 @@ fi
 NEEDS_KEY=0
 grep -q '<!-- requires: key -->' "$PROMPT_FILE" && NEEDS_KEY=1
 
-if [ "$NEEDS_KEY" -eq 1 ] && [ -z "${AURORA_TRIAL_KEY:-}" ]; then
+if [ "$NEEDS_KEY" -eq 1 ] && [ -z "${AURORA_API_KEY:-}" ]; then
   cat >&2 <<'MSG'
 This scenario starts from "the developer already has a key", so it needs one on disk.
 
-Set AURORA_TRIAL_KEY to a key minted for this trial:
+Set AURORA_API_KEY to a key minted for this trial:
 
-    AURORA_TRIAL_KEY=... tests/cold-start-trial.sh <scenario>
+    AURORA_API_KEY=... tests/cold-start-trial.sh <scenario>
 
 Mint a dedicated, revocable key at https://portal.aur.lu. Do not reuse a key from a
 working installation — a proxy checkout or harness config .env exists to make that
@@ -161,9 +161,9 @@ if [ "$NEEDS_KEY" -eq 1 ]; then
   # Written the way paste-key.sh leaves it, so the scenario starts from the real
   # post-capture state. Never echoed.
   umask 077
-  printf 'AURORA_API_KEY=%s\n' "$AURORA_TRIAL_KEY" > "$ROOT/work/.env"
+  printf 'AURORA_API_KEY=%s\n' "$AURORA_API_KEY" > "$ROOT/work/.env"
   chmod 600 "$ROOT/work/.env"
-  echo "seeded   : .env at mode 600 from \$AURORA_TRIAL_KEY (value never printed)"
+  echo "seeded   : .env at mode 600 from \$AURORA_API_KEY in the environment (value never printed)"
   echo
 fi
 
