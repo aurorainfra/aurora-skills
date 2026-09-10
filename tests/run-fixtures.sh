@@ -256,6 +256,55 @@ set -e
   || bad "rejected a clean root (exit $RC, want 0)"
 rm -rf "$CLEANBASE"
 
+# A scenario that starts from "the developer already has a key" must declare it, or
+# the harness silently runs it against an empty directory and the premise is a lie.
+for sc in tests/scenarios/*.md; do
+  n=$(basename "$sc" .md)
+  if grep -qi 'already have a key\|already have an Aurora API key\|a key in `.env`' "$sc"; then
+    grep -q '<!-- requires: key -->' "$sc" \
+      && ok "scenario $n declares its key requirement" \
+      || bad "scenario $n assumes a key on disk but does not declare 'requires: key'"
+  fi
+done
+
+# ... and must refuse rather than run that scenario without one.
+KEYSC=$(grep -l '<!-- requires: key -->' tests/scenarios/*.md 2>/dev/null | head -1)
+if [ -n "$KEYSC" ]; then
+  set +e
+  ( unset AURORA_TRIAL_KEY; COLD_BASE="$(mktemp -d)" \
+      bash tests/cold-start-trial.sh "$(basename "$KEYSC" .md)" >/dev/null 2>&1 ); RC=$?
+  set -e
+  [ "$RC" -eq 3 ] && ok "refuses a key-requiring scenario when no trial key is set (exit 3)" \
+    || bad "ran a key-requiring scenario with no trial key (exit $RC, want 3)"
+else
+  bad "no scenario declares 'requires: key' — S2/S3/S6 depend on a pre-existing key"
+fi
+
+# The trial key is supplied explicitly, never discovered. Reaching into a working
+# installation's .env (a proxy checkout, a harness config) to find one treats that
+# install's config as a credential store and lets a test revoke or corrupt real setups.
+if grep -nE 'aurora-litellm|find[^|]*\.env|source[[:space:]]+[^|]*\.env|^[[:space:]]*\.[[:space:]]+[^|]*\.env' \
+     tests/cold-start-trial.sh >/dev/null 2>&1; then
+  bad "harness discovers credentials on the filesystem instead of taking them explicitly"
+else
+  ok "trial key comes only from \$AURORA_TRIAL_KEY, never discovered on disk"
+fi
+
+# The seeded key must never reach stdout. An escaped \$AURORA_TRIAL_KEY prints the
+# variable's NAME and is fine; an unescaped expansion not redirected to a file is not.
+LEAKY=$(grep -nE '(echo|printf)' tests/cold-start-trial.sh \
+        | grep -F '$AURORA_TRIAL_KEY' \
+        | grep -v '\\$AURORA_TRIAL_KEY' \
+        | grep -v '>' || true)
+if [ -n "$LEAKY" ]; then
+  bad "harness may print the trial key: $LEAKY"
+else
+  ok "harness never expands the trial key into output"
+fi
+grep -qE 'cat[[:space:]]+[^|]*\.env|echo[[:space:]]+[^|]*\$AURORA_API_KEY' tests/cold-start-trial.sh \
+  && bad "harness reads back the seeded .env" \
+  || ok "harness never reads back the seeded .env"
+
 # Regression guard: overriding HOME or CLAUDE_CONFIG_DIR fails auth ("Not logged
 # in") because credentials live in the OS keychain and $HOME/.claude.json. Both
 # were tried on 2026-09-09 and both broke the run without improving isolation.

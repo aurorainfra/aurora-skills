@@ -173,6 +173,20 @@ Scenarios live in `tests/scenarios/`: cold start, an OpenCode merge over a confi
 other providers, raw API with no harness, the rendered-GitHub entry point, Linux with a dash login
 shell, and a re-run over a working install.
 
+Three of them begin *after* the human-only steps, so they need a real key on disk. It is supplied
+explicitly and from nowhere else:
+
+```bash
+AURORA_TRIAL_KEY=... tests/cold-start-trial.sh S2-opencode-merge
+```
+
+Without it the harness exits 3 rather than run the scenario against an empty directory and report
+findings about its own setup. **Mint a dedicated, revocable key for this.** Do not reuse one from a
+working installation — a proxy checkout or a harness config `.env` exists to make that thing run,
+not to serve as a credential store, and a test that reaches into it can revoke or corrupt a real
+setup. The harness never searches the filesystem for a key; a fixture enforces that, and another
+enforces that it never expands the key into its output.
+
 You cannot get this from a subagent spawned inside a configured checkout. It inherits the session's
 resolved `CLAUDE.md` chain and its recalled memories, so it "discovers" what it was handed — measured
 2026-09-09, four of six such agents disclosed prior knowledge of Aurora's endpoints and catalog.

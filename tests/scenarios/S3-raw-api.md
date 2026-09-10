@@ -2,6 +2,8 @@ A developer says, and gives you nothing else:
 
 > Read https://raw.githubusercontent.com/aurorainfra/aurora-skills/main/README.md
 > and set me up on Aurora.
+<!-- requires: key -->
+
 ## Their situation
 
 macOS. **No harness at all** — you want raw API access for a Python script. You already have a key

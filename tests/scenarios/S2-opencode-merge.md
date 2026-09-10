@@ -2,6 +2,8 @@ A developer says, and gives you nothing else:
 
 > Read https://raw.githubusercontent.com/aurorainfra/aurora-skills/main/README.md
 > and set me up on Aurora.
+<!-- requires: key -->
+
 ## Their situation
 
 macOS. Harness: **OpenCode**. Production. You already have a key in `.env` in this directory —
