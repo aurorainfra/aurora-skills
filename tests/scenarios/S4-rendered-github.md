@@ -1,6 +1,6 @@
 A developer says, and gives you nothing else:
 
-> Read https://raw.githubusercontent.com/aurorainfra/aurora-skills/main/README.md
+> Read https://github.com/aurorainfra/aurora-skills/blob/main/README.md
 > and set me up on Aurora.
 ## Their situation
 

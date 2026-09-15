@@ -227,9 +227,15 @@ fi
 
 for sc in tests/scenarios/*.md; do
   n=$(basename "$sc" .md)
-  grep -q 'raw.githubusercontent.com/aurorainfra/aurora-skills/main/README.md' "$sc" \
-    && ok "scenario $n starts from the pasteable entry point" \
-    || bad "scenario $n does not start from the README paste line"
+  if [ "$n" = "S4-rendered-github" ]; then
+    grep -q 'github.com/aurorainfra/aurora-skills/blob/main/README.md' "$sc" \
+      && ok "scenario $n starts from the rendered entry point" \
+      || bad "scenario $n does not start from the rendered README page"
+  else
+    grep -q 'raw.githubusercontent.com/aurorainfra/aurora-skills/main/README.md' "$sc" \
+      && ok "scenario $n starts from the pasteable entry point" \
+      || bad "scenario $n does not start from the README paste line"
+  fi
   grep -q 'nothing known in advance' "$sc" \
     && ok "scenario $n asks the agent to disclose prior knowledge" \
     || bad "scenario $n does not ask for a prior-knowledge disclosure"

@@ -66,9 +66,11 @@ PROMPT_FILE="$REPO_ROOT/tests/scenarios/$SCENARIO.md"
 [ -f "$PROMPT_FILE" ] || { echo "No such scenario: $PROMPT_FILE" >&2; exit 1; }
 
 # A fresh directory every run. Never reuse one: a second run in the same path
-# inherits the first run's memory directory and is no longer cold.
+# inherits the first run's memory directory and is no longer cold. mktemp -d
+# guarantees uniqueness even when two runs start in the same second.
 COLD_BASE="${COLD_BASE:-$HOME/development/aurora-cold-trial}"
-ROOT="$COLD_BASE/$SCENARIO-$(date -u +%Y%m%dT%H%M%SZ)"
+mkdir -p "$COLD_BASE"
+ROOT="$(mktemp -d "$COLD_BASE/$SCENARIO-XXXXXX")"
 
 FAIL=0
 note_ok()   { printf '  \033[32mOK\033[0m    %s\n' "$1"; }
@@ -155,6 +157,17 @@ fi
 command -v claude >/dev/null 2>&1 || { echo "'claude' not on PATH." >&2; exit 1; }
 
 mkdir -p "$ROOT/work" "$ROOT/home/.config"
+
+# Scenarios that claim a pre-existing OpenCode setup (S2, S6) need that state
+# on disk before the agent runs, or there is nothing for merge-preservation or
+# rerun-idempotency to actually verify.
+FIXTURE="$REPO_ROOT/tests/fixtures/opencode/$SCENARIO.jsonc"
+if [ -f "$FIXTURE" ]; then
+  mkdir -p "$ROOT/home/.config/opencode"
+  cp "$FIXTURE" "$ROOT/home/.config/opencode/opencode.jsonc"
+  echo "seeded   : existing OpenCode config from $FIXTURE"
+fi
+
 cd "$ROOT/work"
 
 if [ "$NEEDS_KEY" -eq 1 ]; then
@@ -166,6 +179,12 @@ if [ "$NEEDS_KEY" -eq 1 ]; then
   echo "seeded   : .env at mode 600 from \$AURORA_API_KEY in the environment (value never printed)"
   echo
 fi
+
+# The scenario requires the key to be opaque and live only in .env, already
+# written above. Unset it so the agent process cannot read it from its own
+# environment (e.g. `env | grep -i aurora`), independent of the Rules line
+# that tells it not to try.
+unset AURORA_API_KEY
 
 # HOME stays real (auth). The cwd is what makes this cold. XDG_CONFIG_HOME keeps
 # any harness config the agent writes out of the real home directory.
