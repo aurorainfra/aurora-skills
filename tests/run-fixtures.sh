@@ -314,6 +314,113 @@ grep -q 'not the rendered GitHub pages' README.md 2>/dev/null \
   && ok "README requires raw URLs for prompt files" \
   || bad "README does not warn that rendered pages strip XML tags"
 
+# ── 4e. Cold-start trial harness ─────────────────────────────────────────────
+sec "4e. Cold-start harness: a trial that is not actually cold is worthless"
+
+if bash -n tests/cold-start-trial.sh 2>/dev/null; then
+  ok "cold-start-trial.sh parses"
+else
+  bad "cold-start-trial.sh syntax error"
+fi
+
+for sc in tests/scenarios/*.md; do
+  n=$(basename "$sc" .md)
+  if [ "$n" = "S4-rendered-github" ]; then
+    grep -q 'github.com/aurorainfra/aurora-skills/blob/main/README.md' "$sc" \
+      && ok "scenario $n starts from the rendered entry point" \
+      || bad "scenario $n does not start from the rendered README page"
+  else
+    grep -q 'raw.githubusercontent.com/aurorainfra/aurora-skills/main/README.md' "$sc" \
+      && ok "scenario $n starts from the pasteable entry point" \
+      || bad "scenario $n does not start from the README paste line"
+  fi
+  grep -q 'nothing known in advance' "$sc" \
+    && ok "scenario $n asks the agent to disclose prior knowledge" \
+    || bad "scenario $n does not ask for a prior-knowledge disclosure"
+done
+
+# The harness must refuse to run anywhere its findings would be contaminated.
+set +e
+OUT=$( COLD_BASE="$PWD/tests" bash tests/cold-start-trial.sh \
+         "$(basename "$(ls -1 tests/scenarios/*.md | head -1)" .md)" --dry-run 2>&1 ); RC=$?
+set -e
+[ "$RC" -eq 2 ] && ok "refuses a root inside the repo under test (exit 2)" \
+  || bad "accepted a root inside the repo under test (exit $RC, want 2)"
+printf '%s' "$OUT" | grep -q 'would inherit' \
+  && ok "names the CLAUDE.md it would have inherited" \
+  || bad "refusal does not name the inherited instructions"
+
+# ... and must pass on a root with nothing above it.
+CLEANBASE=$(mktemp -d)
+set +e
+OUT=$( COLD_BASE="$CLEANBASE" bash tests/cold-start-trial.sh \
+         "$(basename "$(ls -1 tests/scenarios/*.md | head -1)" .md)" --dry-run 2>&1 ); RC=$?
+set -e
+[ "$RC" -eq 0 ] && ok "accepts a root with no instructions above it" \
+  || bad "rejected a clean root (exit $RC, want 0)"
+rm -rf "$CLEANBASE"
+
+# A scenario that starts from "the developer already has a key" must declare it, or
+# the harness silently runs it against an empty directory and the premise is a lie.
+for sc in tests/scenarios/*.md; do
+  n=$(basename "$sc" .md)
+  if grep -qi 'already have a key\|already have an Aurora API key\|a key in `.env`' "$sc"; then
+    grep -q '<!-- requires: key -->' "$sc" \
+      && ok "scenario $n declares its key requirement" \
+      || bad "scenario $n assumes a key on disk but does not declare 'requires: key'"
+  fi
+done
+
+# ... and must refuse rather than run that scenario without one.
+KEYSC=$(grep -l '<!-- requires: key -->' tests/scenarios/*.md 2>/dev/null | head -1)
+if [ -n "$KEYSC" ]; then
+  set +e
+  ( unset AURORA_API_KEY; COLD_BASE="$(mktemp -d)" \
+      bash tests/cold-start-trial.sh "$(basename "$KEYSC" .md)" >/dev/null 2>&1 ); RC=$?
+  set -e
+  [ "$RC" -eq 3 ] && ok "refuses a key-requiring scenario when no trial key is set (exit 3)" \
+    || bad "ran a key-requiring scenario with no trial key (exit $RC, want 3)"
+else
+  bad "no scenario declares 'requires: key' — S2/S3/S6 depend on a pre-existing key"
+fi
+
+# The trial key is supplied explicitly, never discovered. Reaching into a working
+# installation's .env (a proxy checkout, a harness config) to find one treats that
+# install's config as a credential store and lets a test revoke or corrupt real setups.
+if grep -nE 'aurora-litellm|find[^|]*\.env|source[[:space:]]+[^|]*\.env|^[[:space:]]*\.[[:space:]]+[^|]*\.env' \
+     tests/cold-start-trial.sh >/dev/null 2>&1; then
+  bad "harness discovers credentials on the filesystem instead of taking them explicitly"
+else
+  ok "trial key comes only from \$AURORA_API_KEY, never discovered on disk"
+fi
+
+# The seeded key must never reach stdout. An escaped \$AURORA_API_KEY prints the
+# variable's NAME and is fine; an unescaped expansion not redirected to a file is not.
+LEAKY=$(grep -nE '(echo|printf)' tests/cold-start-trial.sh \
+        | grep -F '$AURORA_API_KEY' \
+        | grep -v '\\$AURORA_API_KEY' \
+        | grep -v '>' || true)
+if [ -n "$LEAKY" ]; then
+  bad "harness may print the trial key: $LEAKY"
+else
+  ok "harness never expands the trial key into output"
+fi
+# Reading the seeded file back would put the secret in the harness's own output.
+# (An escaped \$AURORA_API_KEY prints only the variable name and is covered by the
+# expansion check above, so it is deliberately not matched here.)
+grep -qE '(cat|less|head|tail)[[:space:]]+[^|]*\.env' tests/cold-start-trial.sh \
+  && bad "harness reads back the seeded .env" \
+  || ok "harness never reads back the seeded .env"
+
+# Regression guard: overriding HOME or CLAUDE_CONFIG_DIR fails auth ("Not logged
+# in") because credentials live in the OS keychain and $HOME/.claude.json. Both
+# were tried on 2026-09-09 and both broke the run without improving isolation.
+if grep -qE '^[[:space:]]*(HOME=|CLAUDE_CONFIG_DIR=)[^ ]*[[:space:]]+claude' tests/cold-start-trial.sh; then
+  bad "harness overrides HOME/CLAUDE_CONFIG_DIR for the agent (breaks auth)"
+else
+  ok "harness leaves HOME and CLAUDE_CONFIG_DIR alone (cwd is what makes it cold)"
+fi
+
 # ── 5. Live checks (opt-in) ──────────────────────────────────────────────────
 sec "5. Live checks against Aurora (opt-in)"
 

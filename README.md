@@ -173,6 +173,7 @@ Keys are **environment-scoped**: a dev key will not authenticate against prod.
 - `prompts/meta/` — the meta-prompt that generates the harness set
 - `scripts/paste-key.sh` — self-contained credential capture; user-run, TTY-only
 - `scripts/setup.sh` — repo-local verification + harness prerequisites
+- `tests/cold-start-trial.sh` — runs one scenario as a cold agent; `tests/scenarios/` holds the six
 - `tests/run-fixtures.sh` — fixture suite; green with no key and no network
 
 Claude Desktop is deliberately unsupported: it exposes no model-backend override, so it cannot be
@@ -185,6 +186,44 @@ tests/run-fixtures.sh                                    # static only, no key n
 AURORA_LIVE=1 AURORA_API_KEY=... tests/run-fixtures.sh   # adds live checks
 tests/docs-agent-readiness.sh                            # probes the live docs as an agent would
 ```
+
+`cold-start-trial.sh` runs one onboarding scenario as a **genuinely cold agent** — the only way to
+test this repo's actual claim, which is that someone who knows nothing can paste one line and end up
+working:
+
+```bash
+tests/cold-start-trial.sh S5-linux-dash --dry-run   # isolation checks only, no agent, no spend
+tests/cold-start-trial.sh S5-linux-dash             # run it
+```
+
+Scenarios live in `tests/scenarios/`: cold start, an OpenCode merge over a config that already has
+other providers, raw API with no harness, the rendered-GitHub entry point, Linux with a dash login
+shell, and a re-run over a working install.
+
+Three of them begin *after* the human-only steps, so they need a real key on disk. It is supplied
+explicitly and from nowhere else:
+
+```bash
+AURORA_API_KEY=... tests/cold-start-trial.sh S2-opencode-merge
+```
+
+Without it the harness exits 3 rather than run the scenario against an empty directory and report
+findings about its own setup. **Mint a dedicated, revocable key for this.** Do not reuse one from a
+working installation — a proxy checkout or a harness config `.env` exists to make that thing run,
+not to serve as a credential store, and a test that reaches into it can revoke or corrupt a real
+setup. The harness never searches the filesystem for a key; a fixture enforces that, and another
+enforces that it never expands the key into its output.
+
+You cannot get this from a subagent spawned inside a configured checkout. It inherits the session's
+resolved `CLAUDE.md` chain and its recalled memories, so it "discovers" what it was handed — measured
+2026-09-09, four of six such agents disclosed prior knowledge of Aurora's endpoints and catalog.
+Both leak sources are path-scoped: instructions resolve upward from the working directory, and memory
+is keyed to it. So the harness runs from a fresh directory each time with neither above it, and
+**refuses with exit 2** rather than produce findings that would be worthless.
+
+Do not try to achieve this by isolating `CLAUDE_CONFIG_DIR` or overriding `HOME`. Credentials live in
+the OS keychain and `$HOME/.claude.json`; both fail auth with `Not logged in` and isolate nothing that
+matters. A fixture guards against reintroducing either.
 
 `docs-agent-readiness.sh` is the repeatable acceptance test for
 [inference-roadmap#185](https://github.com/aurorainfra/inference-roadmap/issues/185): it fetches
