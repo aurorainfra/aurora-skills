@@ -57,8 +57,14 @@ Four proxy settings are load-bearing. Each was a silent failure before it was se
 1. Run `scripts/setup.sh claude-code`:
    - 0: proceed. Note the printed `/v1/messages` status — it confirms why the proxy is needed.
    - 2: relay the credential message, re-run once the user confirms.
-   - 3: halt. Auth failed.
+   - 3: halt. The endpoint responded but the request failed — read the script's output for the
+     status code. Only report a rejected key on a 401; a 404 or 5xx is a different failure (bad
+     endpoint, service error) and must be reported as that, not as a bad key. On a 401,
+     `X-Api-Key` is the Portal API's header, not inference's — retrying with it will not help.
+   - 5: halt. The endpoint was never reached, so the key was never tested. Report this as a
+     network problem. Do not tell the user their key is bad, and do not have them mint a new one.
    - 4: halt. `claude` is not on PATH.
+   - 6: halt. A tool `setup.sh` itself needs is missing; the message names it. Not an Aurora problem.
 2. Configure the proxy with the four load-bearing settings above, pointing `api_base` at the
    verified `AURORA_API_ENDPOINT` and the model at a live catalog id.
 3. Start the proxy and confirm it is listening on `127.0.0.1:4000`.

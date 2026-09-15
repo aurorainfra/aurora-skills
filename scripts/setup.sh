@@ -10,6 +10,8 @@
 #   2 = user input needed (.env just created, or values still placeholders)
 #   3 = endpoint reachable but auth/response failed
 #   4 = harness prerequisite missing (harness CLI or config path absent)
+#   5 = endpoint unreachable (connection never established; the key was never tested)
+#   6 = local prerequisite missing (a tool setup.sh itself needs, e.g. python3)
 set -euo pipefail
 
 HARNESS="${1:-api}"
@@ -57,23 +59,49 @@ else
   echo "WARNING: .env does not appear to be gitignored. Add it before committing anything."
 fi
 
+# ── 1b. Local prerequisites ───────────────────────────────────────────────────
+# python3 parses the catalog below. Check it up front so a missing interpreter is
+# reported as a missing interpreter, rather than surfacing later as an auth or
+# catalog failure on a perfectly good key.
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "Local prerequisite missing: 'python3' not on PATH."
+  echo "  setup.sh needs it to parse the model catalog. Install python3, then re-run."
+  echo "  Your credentials were not tested — this is not an Aurora problem."
+  exit 6
+fi
+
 # ── 2. Live credential check ──────────────────────────────────────────────────
 # Aurora is OpenAI-compatible: the catalog lives at <base>/models.
 BODY_FILE="$(mktemp)"
 trap 'rm -f "$BODY_FILE"' EXIT
 
+# curl already writes 000 through -w when it cannot connect. `|| true` keeps set -e
+# from aborting; appending a second status here would produce "000000" and make the
+# unreachable branch below unmatchable.
 HTTP_STATUS=$(curl -sS -o "$BODY_FILE" -w "%{http_code}" \
   -H "Authorization: Bearer $AURORA_API_KEY" \
-  "${AURORA_API_ENDPOINT%/}/models" || echo "000")
+  "${AURORA_API_ENDPOINT%/}/models" || true)
+HTTP_STATUS="${HTTP_STATUS:-000}"
+
+# Unreachable is not the same failure as rejected, and must not share an exit code:
+# the prompts branch on 3 by halting with "auth failed", which sends a developer to
+# regenerate a key that was never sent anywhere.
+if [ "$HTTP_STATUS" = "000" ]; then
+  echo "FAILURE: could not connect to ${AURORA_API_ENDPOINT%/}/models."
+  echo "  The endpoint was never reached, so your key was never tested. This is not an auth failure."
+  echo "  Check the hostname, DNS, and whether this network can reach ${AURORA_API_ENDPOINT}."
+  exit 5
+fi
 
 if ! [[ "$HTTP_STATUS" =~ ^2[0-9][0-9]$ ]]; then
   echo "FAILURE: ${AURORA_API_ENDPOINT%/}/models responded $HTTP_STATUS."
   case "$HTTP_STATUS" in
-    401) echo "  401 = key rejected. Keys are environment-scoped: a dev key will not work on prod." ;;
+    401) echo "  401 = key rejected on 'Authorization: Bearer'. Keys are environment-scoped:"
+         echo "        a dev key will not work on prod, and vice versa."
+         echo "        Do not retry with X-Api-Key — that header belongs to the Portal API"
+         echo "        (api-portal.aur.lu), not to inference." ;;
     404) echo "  404 = wrong base path. Expected a base ending in /v1." ;;
-    000) echo "  000 = could not connect. Check the hostname and your network." ;;
   esac
-  echo "  Note: Aurora authenticates with 'Authorization: Bearer'. X-Api-Key does not work anywhere."
   exit 3
 fi
 

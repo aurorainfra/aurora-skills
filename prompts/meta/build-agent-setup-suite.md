@@ -30,7 +30,7 @@ Ground truth about Aurora, verified live 2026-08-31. Do not re-derive, but DO re
 | Portal API base | `https://api-portal.aur.lu/api` — Swagger 2.0, 44 paths |
 | Raw OpenAPI spec | `https://docs.aur.lu/portal-api-spec.json` — plain-fetchable, no JS, no auth |
 | Auth header | `Authorization: Bearer <atp_…>` — the ONLY scheme that works |
-| `X-Api-Key` | Documented but 401s in **both** environments. Never use it. |
+| `X-Api-Key` | The **Portal** API's header (`api-portal.aur.lu`). 401s against inference in both environments — never send it to `ai.aur.lu`, and never say it is universally invalid. |
 | Key scope | Environment-scoped. A dev key 401s on prod and vice versa. |
 | Key generation | Human action. Prod: `portal.aur.lu`. Dev: `dashboard.dev.aur.lu`. |
 | Aurora serves | `/v1/models`, `/v1/chat/completions`, `/v1/completions` |
