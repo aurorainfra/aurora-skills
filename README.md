@@ -60,13 +60,14 @@ Give them this line **verbatim** and tell them to run it in **their own terminal
 directory they want configured:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/aurorainfra/aurora-skills/main/scripts/paste-key.sh -o aurora-paste-key.sh && bash aurora-paste-key.sh; rm -f aurora-paste-key.sh
+curl -fsSL https://raw.githubusercontent.com/aurorainfra/aurora-skills/main/scripts/paste-key.sh -o aurora-paste-key.sh && bash aurora-paste-key.sh; s=$?; rm -f aurora-paste-key.sh; (exit $s)
 ```
 
 Add `--dev` after `aurora-paste-key.sh` for the dev environment.
 
-This form runs in **any** shell, which is the point — the line is pasted by a human, into whatever
-shell they happen to have.
+This form runs in **any POSIX shell** (`sh`, `bash`, `zsh`, `dash`) — it does not use process
+substitution, so it works whichever of those the human happens to have. It is not a PowerShell or
+cmd.exe command; a Windows user needs a POSIX shell (WSL, Git Bash) to run it.
 
 **Why not `bash <(curl -fsSL …)`?** That is process substitution: bash, zsh and ksh only. Under
 `sh`/dash it dies at parse time with ``syntax error near unexpected token `(' `` before curl or bash

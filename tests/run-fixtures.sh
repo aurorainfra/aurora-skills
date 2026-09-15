@@ -198,7 +198,7 @@ fi
 SH_BAD=0; SH_N=0
 while IFS= read -r blk; do
   SH_N=$((SH_N+1))
-  printf '%s' "$blk" | base64 --decode > "$TMPSH" 2>/dev/null || continue
+  printf '%s' "$blk" | python3 -m base64 -d > "$TMPSH" 2>/dev/null || continue
   sh -n "$TMPSH" 2>/dev/null || { SH_BAD=$((SH_BAD+1)); }
 done < <(python3 - <<'PYX'
 import re, base64
