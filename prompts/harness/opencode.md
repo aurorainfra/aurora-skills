@@ -37,8 +37,10 @@ Config lives at `~/.config/opencode/opencode.jsonc`.
 1. Run `scripts/setup.sh opencode`:
    - 0: proceed. The script prints the live model list — use it.
    - 2: relay the message asking the user to set AURORA_API_KEY, then re-run once confirmed.
-   - 3: halt. The key was rejected. Do not retry with another header scheme — `X-Api-Key`
-     is the Portal API's header, not inference's.
+   - 3: halt. The endpoint responded but the request failed — read the script's output for the
+     status code. Only report a rejected key on a 401; a 404 or 5xx is a different failure (bad
+     endpoint, service error) and must be reported as that, not as a bad key. On a 401, do not
+     retry with another header scheme — `X-Api-Key` is the Portal API's header, not inference's.
    - 5: halt. The endpoint was never reached, so the key was never tested. Report this as a
      network problem. Do not tell the user their key is bad, and do not have them mint a new one.
    - 4: halt. `opencode` is not on PATH; tell the user to install it.
